@@ -4,63 +4,47 @@ const { TokenClass, Token } = require('./tokens');
   let tokenIndex = 0;
   
   function parseCode(code) {
-    tokens = [];
-    const lines = code.split('\n');
-    console.log(code)
-    console.log(lines)
+    let lines = code.split('\n');
     let lineNum = 1;
 
-    for (const line of lines) {
+    for (let line of lines) {
+        line = line.replace(/\s+/g, ' ').trim();
+        console.log(`Line: ${line}`);
         let column = 1;
-        let lineCopy = line.replace(/\s+/g, ' ').trim();
 
-        while (lineCopy.length > 0) {
+        while (line.length > 0) {
             let match = null;
 
-            if (lineCopy[0] === '"') {
-                // Handle constantes de texto
-                match = lineCopy.match(TokenClass.CONSTANTE_TEXTO);
+            for (let tokenClass of Object.keys(TokenClass)) {
+                console.log(`Token Class: ${tokenClass}`);
+                let regex = TokenClass[tokenClass].source;
+                console.log(`Regex: ${regex}`);
+                let re = new RegExp('^' + regex);
+                console.log(`Line before exec: ${line}`);
+                match = re.exec(line);
+                console.log(`Match: ${match}`);
+
                 if (match) {
-                    const lexeme = match[0];
-                    const token = new Token(TokenClass.CONSTANTE_TEXTO, lexeme, lineNum, column);
+                    let lexeme = match[0];
+                    let token = new Token(tokenClass, lexeme, lineNum, column);
+                    console.log(`Token: ${token}`);
                     tokens.push(token);
-                    lineCopy = lineCopy.substring(lexeme.length).trimLeft();
+                    line = line.substring(lexeme.length).trimLeft();
                     column += lexeme.length;
-                } else {
-                    throw new SyntaxError(`Erro léxico na linha ${lineNum}, coluna ${column}: formato inválido de constante de texto`);
+                    break;
                 }
-            } else {
-                // Handle outros tokens
-                for (const tokenClass in TokenClass) {
-                    const regex = TokenClass[tokenClass];
-                    match = lineCopy.match(regex);
+            }
 
-                    if (match) {
-                        const lexeme = match[0];
-                        const token = new Token(TokenClass[tokenClass], lexeme, lineNum, column);
-                        tokens.push(token);
-                        lineCopy = lineCopy.substring(lexeme.length).trimLeft();
-                        column += lexeme.length;
-                        break;
-                    }
-                }
-
-                if (match === null) {
-                    throw new SyntaxError(`Erro léxico na linha ${lineNum}, coluna ${column}: caractere inesperado: ${lineCopy[0]}`);
-                }
+            if (!match) {
+                throw new SyntaxError(`Erro léxico na linha ${lineNum}, coluna ${column}: caractere inesperado: ${line[0]}`);
             }
         }
 
         lineNum += 1;
     }
-
-    console.log(tokens, "kkkkkkk");
+    console.log(tokens)
     return tokens;
 }
-
-  
-
-
 
   
   function program() {
