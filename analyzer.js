@@ -9,39 +9,55 @@ const { TokenClass, Token } = require('./tokens');
     console.log(code)
     console.log(lines)
     let lineNum = 1;
-  
+
     for (const line of lines) {
-      let column = 1;
-      let lineCopy = line.replace(/\s+/g, ' ').trim();
-  
-      while (lineCopy.length > 0) {
-        let match = null;
-  
-        for (const tokenClass in TokenClass) {
-          const regex = TokenClass[tokenClass];
-          match = lineCopy.match(regex);
-  
-          if (match) {
-            const lexeme = match[0];
-            const token = new Token(TokenClass[tokenClass], lexeme, lineNum, column);
-            tokens.push(token);
-            lineCopy = lineCopy.substring(lexeme.length).trimLeft();
-            column += lexeme.length;
-            break;
-          }
+        let column = 1;
+        let lineCopy = line.replace(/\s+/g, ' ').trim();
+
+        while (lineCopy.length > 0) {
+            let match = null;
+
+            if (lineCopy[0] === '"') {
+                // Handle constantes de texto
+                match = lineCopy.match(TokenClass.CONSTANTE_TEXTO);
+                if (match) {
+                    const lexeme = match[0];
+                    const token = new Token(TokenClass.CONSTANTE_TEXTO, lexeme, lineNum, column);
+                    tokens.push(token);
+                    lineCopy = lineCopy.substring(lexeme.length).trimLeft();
+                    column += lexeme.length;
+                } else {
+                    throw new SyntaxError(`Erro léxico na linha ${lineNum}, coluna ${column}: formato inválido de constante de texto`);
+                }
+            } else {
+                // Handle outros tokens
+                for (const tokenClass in TokenClass) {
+                    const regex = TokenClass[tokenClass];
+                    match = lineCopy.match(regex);
+
+                    if (match) {
+                        const lexeme = match[0];
+                        const token = new Token(TokenClass[tokenClass], lexeme, lineNum, column);
+                        tokens.push(token);
+                        lineCopy = lineCopy.substring(lexeme.length).trimLeft();
+                        column += lexeme.length;
+                        break;
+                    }
+                }
+
+                if (match === null) {
+                    throw new SyntaxError(`Erro léxico na linha ${lineNum}, coluna ${column}: caractere inesperado: ${lineCopy[0]}`);
+                }
+            }
         }
-  
-        if (match === null) {
-          throw new SyntaxError(`Erro léxico na linha ${lineNum}, coluna ${column}: caractere inesperado: ${lineCopy[0]}`);
-        }
-      }
-  
-      lineNum += 1;
+
+        lineNum += 1;
     }
-  
-    console.log(tokens, "kkkkkkk"); // Adicione este log para verificar os tokens gerados
+
+    console.log(tokens, "kkkkkkk");
     return tokens;
-  }
+}
+
   
 
 
@@ -52,7 +68,9 @@ const { TokenClass, Token } = require('./tokens');
     let javascriptCode = "";
   
     while (!endOfFile()) {
+      console.log('ele devia volta aqui?');
       javascriptCode += declaration() + "\n";
+      
     }
   
     if (!endOfFile()) {
@@ -63,6 +81,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function declaration() {
+    console.log(TokenClass.PALAVRA_RESERVADA,"passou em declaration");
     if (check(TokenClass.PALAVRA_RESERVADA, "fun")) {
       return funDecl();
     } else if (check(TokenClass.PALAVRA_RESERVADA, "var")) {
@@ -112,7 +131,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function statement() {
-    if (check(TokenClass.PALAVRA_RESERVADA, "console.log")) {
+    if (check(TokenClass.PALAVRA_RESERVADA, "print")) {
       return printStmt();
     } else if (check(TokenClass.PALAVRA_RESERVADA, "if")) {
       return ifStmt();
@@ -158,13 +177,17 @@ const { TokenClass, Token } = require('./tokens');
     javascriptCode += "\n}";
     return javascriptCode;
   }
-  
   function printStmt() {
-    match(TokenClass.PALAVRA_RESERVADA, "console.log");
+    console.log(TokenClass.PALAVRA_RESERVADA, "passou pelo printStmt");
+    match(TokenClass.PALAVRA_RESERVADA, "print");
     const content = expression();
     match(TokenClass.DELIMITADOR, ";");
-    return `console.log(${content});`;
-  }
+
+    return `console.log(${content})`;
+}
+
+
+
   
   function returnStmt() {
     match(TokenClass.PALAVRA_RESERVADA, "return");
@@ -216,6 +239,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function whileStmt() {
+    
     match(TokenClass.PALAVRA_RESERVADA, "while");
     match(TokenClass.DELIMITADOR, "(");
   
@@ -232,6 +256,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function block() {
+   
     match(TokenClass.DELIMITADOR, "{");
     let javascriptCode = "";
   
@@ -250,10 +275,12 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function expression() {
+    console.log('????')
     return assignment();
   }
   
   function assignment() {
+  
     if (check(TokenClass.IDENTIFICADOR)) {
       const identifier = tokens[tokenIndex].lexeme;
       match(TokenClass.IDENTIFICADOR);
@@ -286,7 +313,7 @@ const { TokenClass, Token } = require('./tokens');
   
   function logicAnd() {
     let javascriptCode = equality();
-  
+   
     while (check(TokenClass.OPERADOR, "and")) {
       match(TokenClass.OPERADOR, "and");
       const rightOperand = equality();
@@ -310,6 +337,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function comparison() {
+    
     let javascriptCode = term();
   
     while (check(TokenClass.OPERADOR) && ["<", ">", "<=", ">="].includes(tokens[tokenIndex].lexeme)) {
@@ -323,7 +351,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   function term() {
     let javascriptCode = factor();
-  
+    
     while (true) {
       if (check(TokenClass.OPERADOR, "+")) {
         const operator = tokens[tokenIndex].lexeme;
@@ -344,6 +372,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function factor() {
+    
     let javascriptCode = unary();
   
     while (check(TokenClass.OPERADOR, "/") || check(TokenClass.OPERADOR, "*")) {
@@ -357,6 +386,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function unary() {
+   
     if (check(TokenClass.OPERADOR, "!") || check(TokenClass.OPERADOR, "-")) {
       const operator = tokens[tokenIndex].lexeme;
       match(TokenClass.OPERADOR);
@@ -388,6 +418,7 @@ const { TokenClass, Token } = require('./tokens');
   }
   
   function primary() {
+    console.log("chegou aqui?")
     if (
       check(TokenClass.PALAVRA_RESERVADA, "true") ||
       check(TokenClass.PALAVRA_RESERVADA, "false") ||
@@ -398,7 +429,7 @@ const { TokenClass, Token } = require('./tokens');
       check(TokenClass.IDENTIFICADOR)
     ) {
       const token = nextToken();
-  
+      
       if (token.lexeme === "nil") {
         return "null";
       } else {
@@ -471,10 +502,18 @@ function endOfFile() {
   function check(expectedClass, expectedValue = null) {
     if (!endOfFile()) {
       const token = tokens[tokenIndex];
-      return token.tokenClass === expectedClass && (expectedValue === null || token.lexeme === expectedValue);
+      if (Array.isArray(expectedClass)) {
+        return expectedClass.includes(token.lexeme) && (expectedValue === null || token.lexeme === expectedValue);
+      } else {
+        const regex = new RegExp(expectedClass.source, expectedClass.flags + "g");
+        return regex.test(token.lexeme) && (expectedValue === null || token.lexeme === expectedValue);
+      }
     }
     return false;
   }
+  
+
+
   
   function match(expectedTokenClass, expectedTokenValue = null, functionName = null) {
     if (!check(expectedTokenClass, expectedTokenValue)) {
@@ -496,6 +535,7 @@ function endOfFile() {
       const token = tokens[tokenIndex];
       console.log(`Token atual: ${token}`);
       tokenIndex += 1;
+      console.log('novo atual kkkk');
       return token;
     } else {
       return null;

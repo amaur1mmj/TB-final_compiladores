@@ -3,7 +3,7 @@ const { parseCode, program, error } = require('./analyzer');
 
 function main() {
     // Leitura assíncrona do código do arquivo
-    fs.readFile('test/teste4.c', 'utf-8', (err, code) => {
+    fs.readFile('test/teste2.c', 'utf-8', (err, code) => {
         if (err) {
             console.error(`Erro ao ler o arquivo: ${err}`);
             return process.exit(1);
